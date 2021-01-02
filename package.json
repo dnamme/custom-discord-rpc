@@ -1,0 +1,22 @@
+{
+  "name": "custom-discord-rpc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dnamme/custom-discord-rpc.git"
+  },
+  "author": "devnamme",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dnamme/custom-discord-rpc/issues"
+  },
+  "homepage": "https://github.com/dnamme/custom-discord-rpc#readme",
+  "dependencies": {
+    "discord-rpc": "^3.1.4"
+  }
+}

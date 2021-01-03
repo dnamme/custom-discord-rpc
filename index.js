@@ -23,22 +23,110 @@ rl.on("line", (line) => {
         editActivity(findArgs(args));
     else if(cmd == "clear")
         clearActivity();
-    else if(cmd == "idle")
-        setIdle();
+    // else if(cmd == "idle")
+    //     setIdle();
 });
 
 process.on("beforeExit", () => { console.log("beforeExit"); clearActivity() });
 
-function findArgs(args) {
-    // var output = {};
+function findArgs(args) {try{
+    var output = {};
 
-    // for(var i = 0; i < args.length; i++) {
-    //     var arg = args[i];
-    // }
+    var buildingDetails = false;
+    var buildingState = false;
+    var buildingStartTimestamp = false;
+    var buildingEndTimestamp = false;
 
-    // return output;
-    return { details: "Top Text", state: "Bottom Text", partySize: 3, partyMax: 8 };
-}
+    var set_meeting = false;
+    var set_class = false;
+    var set_watching = false;
+
+    var buildString = "";
+    for(var i = 0; i < args.length; i++) {
+        var arg = args[i];
+
+        if(arg.startsWith("-") && !arg.startsWith("--")) {
+            arg = arg.substring(1);
+
+            if(buildingDetails) {
+                buildingDetails = false;
+                output.details = buildString;
+            } else if(buildingState) {
+                buildingState = false;
+                output.state = buildString;
+            }
+
+            if(arg == "top") {
+                buildingDetails = true;
+                buildString = "";
+            } else if(arg == "bot") {
+                buildingState = true;
+                buildString = "";
+            } else if(arg == "ts") {
+                buildingStartTimestamp = true;
+            } else if(arg == "tr") {
+                buildingEndTimestamp = true;
+                usingTimeElapsed = true;
+            } else if(arg == "idle") {
+                output.largeImageKey = "idle";
+                output.largeImageText = "Idle";
+                output.details = "Idle";
+            } else if(arg == "meeting") set_meeting = true;
+            else if(arg == "class") set_class = true;
+            else if(arg == "watching") set_watching = true;
+        } else if(arg.startsWith("--")) {
+            arg = arg.substring(2);
+
+            // if(buildingStartTimestamp || buildingEndTimestamp) {
+            //     if(arg == "elapsed") usingTimeElapsed = true;
+            //     else if(arg == "start") usingTimeElapsed = false;
+            // }
+
+            if(set_meeting) {
+                output.details = "In a meeting...";
+                if(arg == "discord") {
+                    //
+                } else if(arg == "meet") {
+                    //
+                } else if(arg == "zoom") {
+                    //
+                }
+            }
+        } else {
+            if(buildingDetails || buildingState) buildString += (buildString.length > 0 ? " " : "") + arg;
+
+            else if(buildingStartTimestamp) {
+                buildingStartTimestamp = false;
+                output.startTimestamp = Date.now();
+                if(arg != "now") {
+                    var timeSplit = arg.split(".");
+                    var mult = 1;
+                    var time = 0;
+                    for(var i = 0; i < timeSplit.length; i++) {
+                        // 0 = sec, 1 = min, 2 = hr, 3+ = ignored
+                        time += mult * parseInt(timeSplit[timeSplit.length - 1 - i]);
+                        switch(i) {
+                            case 0:
+                            case 1: mult *= 60; break;
+                            case 2: mult *= 24; break;
+                            default: break;
+                        }
+                    }
+
+                    output.startTimestamp = output.startTimestamp - (time * 1000);
+                }
+            }
+        }
+    }
+
+    if(buildingDetails)
+        output.details = buildString;
+    else if(buildingState)
+        output.state = buildString;
+
+
+    return output;
+}catch(error){console.log(error);}}
 
 rpc.on("ready", () => setIdle());
 rpc.login({ clientId: "794909260257558529" })
@@ -47,12 +135,13 @@ rpc.login({ clientId: "794909260257558529" })
 
 
 function updateActivity() {
+    console.log(`Updating activity: ${JSON.stringify(currentActivity)}`);
     rpc.setActivity(currentActivity).catch((e) => console.log(e));
 }
 
 function clearActivity() {
     currentActivity = {};
-    rpc.clearActivity();
+    rpc.clearActivity().then(() => console.log("Cleared activity."), (error) => console.log(error));
 }
 
 function setActivity(formattedArgs) {
@@ -67,6 +156,8 @@ function editActivity(formattedArgs) {
     for(var i = 0; i < keys.length; i++)
         currentActivity[keys[i]] = formattedArgs[keys[i]];
 
+    console.log(formattedArgs);
+
     updateActivity();
 }
 
@@ -74,7 +165,7 @@ function setIdle() {
     currentActivity = {
         largeImageKey: "idle",
         largeImageText: "Idle", 
-        state: "Idle"
+        details: "Idle"
     };
     updateActivity();
 }
@@ -104,12 +195,14 @@ static void UpdatePresence()
 
     --discord | --zoom | --meet
 
-    -ts --now (get time now)
+    -ts now
     -ts 1.40.60
     -ts 2021.1.3.11.40
     -tr 1.40.60
-        year.month.day.24hour.minute.second
+        now | year.month.day.24hour.minute.second
 
     -top Top Text Here
     -bot Bottom Text Here
+    -val 4
+    -max 10
 */

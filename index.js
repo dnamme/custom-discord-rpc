@@ -40,33 +40,25 @@ function findArgs(args) {try{
     var set_meeting = false;
     var set_class = false;
     var set_watching = false;
-
-    var buildString = "";
     for(var i = 0; i < args.length; i++) {
         var arg = args[i];
 
         if(arg.startsWith("-") && !arg.startsWith("--")) {
             arg = arg.substring(1);
 
-            if(buildingDetails) {
-                buildingDetails = false;
-                output.details = buildString;
-            } else if(buildingState) {
-                buildingState = false;
-                output.state = buildString;
-            }
+            if(buildingDetails) buildingDetails = false;
+            else if(buildingState) buildingState = false;
 
             if(arg == "top") {
                 buildingDetails = true;
-                buildString = "";
+                output.details = "";
             } else if(arg == "bot") {
                 buildingState = true;
-                buildString = "";
-            } else if(arg == "ts") {
+                output.state = "";
+            } else if(arg == "ts")
                 buildingStartTimestamp = true;
-            } else if(arg == "tr") {
+            else if(arg == "tr") {
                 buildingEndTimestamp = true;
-                usingTimeElapsed = true;
             } else if(arg == "idle") {
                 output.largeImageKey = "idle";
                 output.largeImageText = "Idle";
@@ -76,11 +68,6 @@ function findArgs(args) {try{
             else if(arg == "watching") set_watching = true;
         } else if(arg.startsWith("--")) {
             arg = arg.substring(2);
-
-            // if(buildingStartTimestamp || buildingEndTimestamp) {
-            //     if(arg == "elapsed") usingTimeElapsed = true;
-            //     else if(arg == "start") usingTimeElapsed = false;
-            // }
 
             if(set_meeting) {
                 output.details = "In a meeting...";
@@ -93,8 +80,8 @@ function findArgs(args) {try{
                 }
             }
         } else {
-            if(buildingDetails || buildingState) buildString += (buildString.length > 0 ? " " : "") + arg;
-
+            if(buildingDetails) output.details += (output.details.length > 0 ? " " : "") + arg;
+            else if(buildingState) output.state += (output.state.length > 0 ? " " : "") + arg;
             else if(buildingStartTimestamp) {
                 buildingStartTimestamp = false;
                 output.startTimestamp = Date.now();
@@ -102,10 +89,10 @@ function findArgs(args) {try{
                     var timeSplit = arg.split(".");
                     var mult = 1;
                     var time = 0;
-                    for(var i = 0; i < timeSplit.length; i++) {
+                    for(var ii = 0; ii < timeSplit.length; ii++) {
                         // 0 = sec, 1 = min, 2 = hr, 3+ = ignored
-                        time += mult * parseInt(timeSplit[timeSplit.length - 1 - i]);
-                        switch(i) {
+                        time += mult * parseInt(timeSplit[timeSplit.length - 1 - ii]);
+                        switch(ii) {
                             case 0:
                             case 1: mult *= 60; break;
                             case 2: mult *= 24; break;
@@ -113,7 +100,7 @@ function findArgs(args) {try{
                         }
                     }
 
-                    output.startTimestamp = output.startTimestamp - (time * 1000);
+                    output.startTimestamp -= time * 1000;
                 }
             }
         }

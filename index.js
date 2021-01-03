@@ -23,13 +23,14 @@ rl.on("line", (line) => {
         editActivity(findArgs(args));
     else if(cmd == "clear")
         clearActivity();
-    // else if(cmd == "idle")
-    //     setIdle();
+    else if(cmd == "exit")
+        process.exit(0);
 });
 
-process.on("beforeExit", () => { console.log("beforeExit"); clearActivity() });
+process.on("exit", () => clearActivity())
+    .on("uncaughtException", () => { console.log("Uncaught Exception"); });
 
-function findArgs(args) {try{
+function findArgs(args) {
     var output = {};
 
     var buildingDetails = false;
@@ -85,23 +86,10 @@ function findArgs(args) {try{
             else if(buildingStartTimestamp) {
                 buildingStartTimestamp = false;
                 output.startTimestamp = Date.now();
-                if(arg != "now") {
-                    var timeSplit = arg.split(".");
-                    var mult = 1;
-                    var time = 0;
-                    for(var ii = 0; ii < timeSplit.length; ii++) {
-                        // 0 = sec, 1 = min, 2 = hr, 3+ = ignored
-                        time += mult * parseInt(timeSplit[timeSplit.length - 1 - ii]);
-                        switch(ii) {
-                            case 0:
-                            case 1: mult *= 60; break;
-                            case 2: mult *= 24; break;
-                            default: break;
-                        }
-                    }
-
-                    output.startTimestamp -= time * 1000;
-                }
+                if(arg != "now") output.startTimestamp -= parseTime(arg) * 1000;
+            } else if(buildingEndTimestamp) {
+                buildingEndTimestamp = false;
+                output.endTimestamp = Date.now() + (parseTime(arg) * 1000);
             }
         }
     }
@@ -113,22 +101,25 @@ function findArgs(args) {try{
 
 
     return output;
-}catch(error){console.log(error);}}
+}
 
 rpc.on("ready", () => setIdle());
 rpc.login({ clientId: "794909260257558529" })
-    .then(s => console.log("Logged in."))
-    .catch(e => console.error(e));
+    .then(() => console.log("Logged in."))
+    .catch(e => console.log(e));
 
 
 function updateActivity() {
-    console.log(`Updating activity: ${JSON.stringify(currentActivity)}`);
-    rpc.setActivity(currentActivity).catch((e) => console.log(e));
+    rpc.setActivity(currentActivity)
+        .then(() => console.log(`Updated activity: ${JSON.stringify(currentActivity)}`))
+        .catch(e => console.log(e));
 }
 
 function clearActivity() {
     currentActivity = {};
-    rpc.clearActivity().then(() => console.log("Cleared activity."), (error) => console.log(error));
+    rpc.clearActivity()
+        .then(() => console.log("Cleared activity."))
+        .catch(e => console.log(e));
 }
 
 function setActivity(formattedArgs) {
@@ -155,6 +146,23 @@ function setIdle() {
         details: "Idle"
     };
     updateActivity();
+}
+
+function parseTime(data) {
+    var timeSplit = data.split(".");
+    var mult = 1;
+    var time = 0;
+    for(var i = 0; i < timeSplit.length; i++) {
+        // 0 = sec, 1 = min, 2 = hr, 3+ = ignored
+        time += mult * parseInt(timeSplit[timeSplit.length - 1 - i]);
+        switch(i) {
+            case 0:
+            case 1: mult *= 60; break;
+            case 2: mult *= 24; break;
+            default: break;
+        }
+    }
+    return time;
 }
 
 /*
